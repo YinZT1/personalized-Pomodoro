@@ -220,43 +220,63 @@ class PomodoroTimer(QSystemTrayIcon):
     
     def update_icon(self):
         """更新托盘图标显示"""
-        from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor
-        
+        from PyQt6.QtGui import QPixmap, QPainter, QFont, QColor, QIcon
+        import sys
+
+
+        def create_icon(emoji_text):
+            pixmap = QPixmap(64, 64)
+            pixmap.fill(QColor(0, 0, 0, 0))  
+            painter = QPainter(pixmap)
+
+            if emoji_text == '⏱':  # 仅正计时图标适配主题
+                # 白色绘制 + 系统自动反色
+                painter.setPen(QColor(255, 255, 255))
+                painter.setFont(QFont('SF Pro Text', 40, QFont.Weight.Bold))
+                painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji_text)
+                painter.end()
+
+                if sys.platform == 'darwin':
+                    icon = QIcon(pixmap)
+                    icon.setIsMask(True)  # 开启系统反色
+                    return icon
+                
+            else:  # 其他 emoji (番茄闪电) 保持原来的颜色 如果想改可以在这里修改
+                painter.setPen(QColor(0, 0, 0))  
+                painter.setFont(QFont('SF Pro Text', 40, QFont.Weight.Bold))
+                painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji_text)
+                painter.end()
+
+            return QIcon(pixmap)
+
+
         if self.mode == 'idle':
             emoji = '🍅'
-            text = '🍅'
+            text = '🍅 空闲'
         elif self.mode == 'focus':
             minutes = self.remaining_seconds // 60
             seconds = self.remaining_seconds % 60
             emoji = '⚡'
-            text = f'⚡ {minutes:02d}:{seconds:02d}'
+            text = f'⚡ 专注模式：{minutes:02d}:{seconds:02d}'
         elif self.mode == 'pomodoro':
             minutes = self.remaining_seconds // 60
             seconds = self.remaining_seconds % 60
             emoji = '🍅'
-            text = f'🍅 {minutes:02d}:{seconds:02d}'
+            text = f'🍅 番茄钟：{minutes:02d}:{seconds:02d}'
         elif self.mode == 'stopwatch':
             minutes = self.elapsed_seconds // 60
             seconds = self.elapsed_seconds % 60
             emoji = '⏱'
-            text = f'⏱ {minutes:02d}:{seconds:02d}'
+            text = f'⏱ 正计时：{minutes:02d}:{seconds:02d}'
         else:
             emoji = '🍅'
-            text = '🍅'
-        
-        # 创建新图标
-        pixmap = QPixmap(64, 64)
-        pixmap.fill(QColor(0, 0, 0, 0))
-        painter = QPainter(pixmap)
-        painter.setFont(QFont('Arial', 48))
-        painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, emoji)
-        painter.end()
-        
-        self.setIcon(QIcon(pixmap))
+            text = '🍅 番茄钟'
+        current_icon = create_icon(emoji)
+        self.setIcon(current_icon)
         self.setToolTip(text)
-        
+
         print(f"[更新] {text}")  # 在终端显示当前状态
-    
+
     def start_focus(self):
         """开始5分钟专注模式"""
         print("\n=== 启动5分钟专注模式 ===")
